@@ -1,0 +1,6 @@
+{
+  "name": "No Show Killer AI",
+  "description": "An entire front desk powered by AI. We build, train, and run your AI voice reception and instant booking system, slashing no-shows and keeping calendars full.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
