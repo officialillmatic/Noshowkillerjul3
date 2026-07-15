@@ -11,16 +11,14 @@ export default function Navbar() {
   ];
 
   return (
-    <nav 
+    <nav
       className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-8 lg:px-16 py-4 sm:py-5 bg-gradient-to-b from-black/60 to-transparent backdrop-blur-xs"
       id="nsk-floating-navbar"
     >
-      {/* Left: Branding Logo block */}
       <a href="#" className="flex items-center hover:opacity-90 transition-opacity cursor-pointer">
         <Logo size="sm" />
       </a>
 
-      {/* Center: Interactive Nav Menu (Hidden on mobile) */}
       <div className="hidden md:flex items-center gap-8" id="navbar-menu-links">
         {navLinks.map((link) => (
           <a
@@ -33,9 +31,16 @@ export default function Navbar() {
         ))}
       </div>
 
-      {/* Right: Get Quote Glass Button & Facebook icon */}
       <div className="flex items-center gap-3 sm:gap-4" id="navbar-ctas">
-        <a 
+        <a
+          href="https://app.noshowkillerai.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center h-11 bg-white/[0.02] text-foreground hover:text-primary hover:bg-white/[0.06] border border-white/10 hover:border-primary/30 px-5 rounded-lg uppercase text-[10px] tracking-[0.2em] font-extrabold active:scale-[0.97] transition-all cursor-pointer"
+        >
+          Client Login
+        </a>
+        <a
           href="https://www.facebook.com/profile.php?id=61585860255283"
           target="_blank"
           rel="noopener noreferrer"
