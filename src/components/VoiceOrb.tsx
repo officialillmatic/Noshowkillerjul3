@@ -72,8 +72,8 @@ export default function VoiceOrb({ active, className = "" }: VoiceOrbProps) {
 
       // soft halo
       const halo = ctx.createRadialGradient(cx, cy, R * 0.2, cx, cy, R * 1.6);
-      halo.addColorStop(0, `rgba(216,181,107,${0.14 + amp * 0.10})`);
-      halo.addColorStop(1, "rgba(216,181,107,0)");
+      halo.addColorStop(0, `rgba(10,224,0,${0.12 + amp * 0.10})`);
+      halo.addColorStop(1, "rgba(10,224,0,0)");
       ctx.fillStyle = halo;
       ctx.fillRect(0, 0, w, h);
 
@@ -89,9 +89,9 @@ export default function VoiceOrb({ active, className = "" }: VoiceOrbProps) {
         const sx = cx + x1 * R * depth, sy = cy + y1 * R * depth;
         const a = Math.max(0, Math.min(1, (z1 + 1.1) / 2.2));
         const size = (0.55 + a * 1.25) * (p.r < 1 ? 0.8 : 1);
-        // front points brass, back points fade toward mint-grey
-        const mint = 1 - a;
-        const rC = Math.round(216 - mint * 90), gC = Math.round(181 + mint * 20), bC = Math.round(107 + mint * 60);
+        // front points neon green, back points fade toward a dim grey-green
+        const back = 1 - a;
+        const rC = Math.round(10 + back * 60), gC = Math.round(224 - back * 120), bC = Math.round(0 + back * 60);
         ctx.fillStyle = `rgba(${rC},${gC},${bC},${0.22 + a * 0.75})`;
         ctx.beginPath();
         ctx.arc(sx, sy, size, 0, Math.PI * 2);

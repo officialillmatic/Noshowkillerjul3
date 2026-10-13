@@ -1,4 +1,5 @@
 import React from "react";
+import Reveal from "./Reveal";
 
 const STATS = [
   { n: "1 in 4", d: "calls to local practices go unanswered" },
@@ -10,12 +11,12 @@ const STATS = [
 export default function ProofStrip() {
   return (
     <div className="border-y border-line bg-ink-2" id="proof">
-      <div className="wrap grid grid-cols-2 gap-y-6 py-7 md:grid-cols-4">
+      <div className="wrap grid grid-cols-2 gap-y-6 py-8 md:grid-cols-4">
         {STATS.map((s, i) => (
-          <div key={s.n} className={`pr-4 ${i > 0 ? "md:border-l md:border-line md:pl-6" : ""} ${i % 2 === 1 ? "border-l border-line pl-5 md:pl-6" : ""}`}>
-            <div className="display-num text-[1.75rem] text-bone">{s.n}</div>
-            <p className="mt-1 text-[0.875rem] text-bone-3">{s.d}</p>
-          </div>
+          <Reveal key={s.n} delay={i * 80} className={`pr-4 ${i > 0 ? "md:border-l md:border-line md:pl-6" : ""} ${i % 2 === 1 ? "border-l border-line pl-5 md:pl-6" : ""}`}>
+            <div className="display-num text-[1.9rem] text-white">{s.n}</div>
+            <p className="mt-1 text-[0.85rem] text-faint">{s.d}</p>
+          </Reveal>
         ))}
       </div>
     </div>

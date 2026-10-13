@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Calendar } from "lucide-react";
+import Reveal from "./Reveal";
+import Pixels from "./Pixels";
 import { AVA_PHONE_DISPLAY, AVA_PHONE_TEL, BOOKING_URL, SUPPORT_EMAIL } from "../lib/site";
 
 /**
@@ -87,37 +89,40 @@ export default function ContactSection() {
   const set = (k: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, [k]: e.target.value });
 
   return (
-    <section className="border-t border-line bg-ink-2 py-20 sm:py-28" id="contacts">
-      <div className="wrap grid gap-10 lg:grid-cols-12">
-        <div className="lg:col-span-5">
-          <h2 className="display text-[clamp(2rem,4vw,3.1rem)] text-bone">Book your 20-minute demo</h2>
+    <section className="relative overflow-hidden border-t border-line bg-ink-2 py-24 sm:py-32" id="contacts">
+      <div className="pointer-events-none absolute bottom-0 right-0 h-[420px] w-[420px] rounded-full bg-neon/5 blur-[140px]" />
+      <Pixels className="absolute left-[4%] bottom-16 hidden lg:block" seed={19} count={10} cols={8} rows={5} cell={14} />
+      <div className="wrap relative grid gap-10 lg:grid-cols-12">
+        <Reveal className="lg:col-span-5">
+          <div className="kicker">Reserve your agent</div>
+          <h2 className="display mt-4 text-[clamp(2rem,4.2vw,3.4rem)] uppercase text-white">Book your <span className="text-neon">20-minute demo</span></h2>
           <p className="prose-muted mt-5 max-w-[34em] text-[1.05rem]">
             Tell us about your practice and pick a time. Nicole walks you through exactly how Ava would handle your calls, with your own numbers from the calculator above.
           </p>
 
           <div className="mt-8 flex flex-col gap-4 text-[0.95rem]">
-            <a href={BOOKING_URL} className="btn btn-brass self-start" target="_blank" rel="noopener noreferrer">
-              Skip the form, open the calendar
+            <a href={BOOKING_URL} className="btn btn-neon self-start" target="_blank" rel="noopener noreferrer">
+              <Calendar size={14} /> Skip the form, open the calendar
             </a>
-            <p className="text-bone-2">
+            <p className="text-muted">
               Prefer to hear Ava first? Call her on{" "}
-              <a href={`tel:${AVA_PHONE_TEL}`} className="tnum font-semibold text-bone underline decoration-line-2 underline-offset-4 hover:decoration-brass">{AVA_PHONE_DISPLAY}</a>.
+              <a href={`tel:${AVA_PHONE_TEL}`} className="tnum font-semibold text-white underline decoration-neon/40 underline-offset-4 hover:decoration-neon">{AVA_PHONE_DISPLAY}</a>.
             </p>
-            <p className="text-bone-3">
-              Questions about onboarding: <a href={`mailto:${SUPPORT_EMAIL}`} className="text-bone-2 hover:text-bone">{SUPPORT_EMAIL}</a>
+            <p className="text-faint">
+              Questions about onboarding: <a href={`mailto:${SUPPORT_EMAIL}`} className="text-muted hover:text-white">{SUPPORT_EMAIL}</a>
             </p>
           </div>
-        </div>
+        </Reveal>
 
-        <div className="lg:col-span-7">
+        <Reveal delay={120} className="lg:col-span-7">
           {!isSubmitted ? (
-            <form onSubmit={handleSubmit} className="panel relative p-6 sm:p-8" id="contact-agent-form">
+            <form onSubmit={handleSubmit} className="glass relative rounded-2xl p-6 sm:p-8" id="contact-agent-form">
               {isSubmitting && (
-                <div className="absolute inset-0 z-10 grid place-items-center rounded-[var(--radius-card)] bg-ink/85 backdrop-blur-sm">
+                <div className="absolute inset-0 z-10 grid place-items-center rounded-2xl bg-black/80 backdrop-blur-md">
                   <div className="text-center">
-                    <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-brass border-t-transparent" />
-                    <p className="mt-3 text-bone">Saving your details</p>
-                    <p className="mt-1 text-[0.85rem] text-bone-3">Then we take you to the calendar to pick a time.</p>
+                    <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-neon border-t-transparent" />
+                    <p className="mt-3 text-[0.72rem] font-bold uppercase tracking-[0.22em] text-white">Saving your details</p>
+                    <p className="mt-1 text-[0.82rem] text-faint">Then we take you to the calendar to pick a time.</p>
                   </div>
                 </div>
               )}
@@ -147,8 +152,8 @@ export default function ContactSection() {
                   {CONCERNS.map((c) => {
                     const on = formData.painPoint === c.value;
                     return (
-                      <label key={c.value} className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-[0.95rem] transition-colors ${on ? "border-brass/70 bg-brass/[0.06] text-bone" : "border-line-2 text-bone-2 hover:bg-bone/[0.03]"}`}>
-                        <input type="radio" name="painPoint" value={c.value} checked={on} onChange={() => setFormData({ ...formData, painPoint: c.value })} className="accent-[#d8b56b]" />
+                      <label key={c.value} className={`flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 text-[0.9rem] transition-all ${on ? "border-neon bg-neon/10 text-neon" : "border-line bg-black/30 text-muted hover:bg-white/[0.04]"}`}>
+                        <input type="radio" name="painPoint" value={c.value} checked={on} onChange={() => setFormData({ ...formData, painPoint: c.value })} className="accent-[#0ae000]" />
                         {c.label}
                       </label>
                     );
@@ -157,30 +162,30 @@ export default function ContactSection() {
               </fieldset>
 
               <div className="mt-7">
-                <button type="submit" disabled={isSubmitting} className="btn btn-brass btn-lg w-full">
+                <button type="submit" disabled={isSubmitting} className="btn btn-neon btn-lg w-full">
                   Continue to the calendar
                 </button>
-                <p className="mt-3 text-center text-[0.85rem] text-bone-3">You pick a 20-minute slot on the next screen. We only use your details to prepare the demo.</p>
+                <p className="mt-3 text-center text-[0.8rem] text-faint">You pick a 20-minute slot on the next screen. We only use your details to prepare the demo.</p>
               </div>
             </form>
           ) : (
-            <div className="panel flex min-h-[420px] flex-col items-center justify-center p-8 text-center" id="booking-success-receipt">
-              <span className="grid h-14 w-14 place-items-center rounded-full bg-brass/15 text-brass"><CheckCircle2 size={28} /></span>
-              <h3 className="display mt-5 text-[1.8rem] text-bone">One last step, {formData.name.split(" ")[0]}</h3>
+            <div className="glass flex min-h-[420px] flex-col items-center justify-center rounded-2xl p-8 text-center animate-fade-in" id="booking-success-receipt">
+              <span className="grid h-14 w-14 place-items-center rounded-full border border-neon/30 bg-neon/15 text-neon"><CheckCircle2 size={28} /></span>
+              <h3 className="display mt-5 text-[1.8rem] uppercase text-white">One last step, {formData.name.split(" ")[0]}</h3>
               <p className="prose-muted mt-2 max-w-[32em]">We are opening the calendar so you can pick a time. If it doesn't open on its own, use the button below.</p>
-              <a href={BOOKING_URL} className="btn btn-brass btn-lg mt-6" target="_blank" rel="noopener noreferrer">Choose your time slot</a>
+              <a href={BOOKING_URL} className="btn btn-neon btn-lg mt-6" target="_blank" rel="noopener noreferrer">Choose your time slot</a>
               {saveFailed && (
-                <p className="mt-5 flex max-w-[32em] items-start gap-2 text-left text-[0.85rem] text-ember">
+                <p className="mt-5 flex max-w-[32em] items-start gap-2 text-left text-[0.82rem] text-ember">
                   <AlertCircle size={15} className="mt-0.5 shrink-0" />
                   We had trouble saving your details, but you can still book. We will collect everything on the call.
                 </p>
               )}
-              <button type="button" onClick={() => { setIsSubmitted(false); setSaveFailed(false); }} className="mt-6 text-[0.9rem] text-bone-2 underline underline-offset-4 hover:text-bone">
+              <button type="button" onClick={() => { setIsSubmitted(false); setSaveFailed(false); }} className="mt-6 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-neon hover:text-white">
                 Edit my details
               </button>
             </div>
           )}
-        </div>
+        </Reveal>
       </div>
     </section>
   );
