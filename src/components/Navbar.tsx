@@ -1,63 +1,79 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { Menu, X } from "lucide-react";
 import Logo from "./Logo";
-import { Facebook } from "lucide-react";
+import { BOOKING_URL, PORTAL_URL } from "../lib/site";
+
+const LINKS = [
+  { name: "What it costs you", href: "#cost" },
+  { name: "How it works", href: "#how" },
+  { name: "Results", href: "#results" },
+  { name: "Plans", href: "#plans" },
+  { name: "FAQ", href: "#faq" },
+];
 
 export default function Navbar() {
-  const navLinks = [
-    { name: "Services", href: "#services" },
-    { name: "Our Approach", href: "#about" },
-    { name: "Proof", href: "#testimonials" },
-    { name: "Contact", href: "#contacts" }
-  ];
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <nav
-      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-8 lg:px-16 py-4 sm:py-5 bg-gradient-to-b from-black/60 to-transparent backdrop-blur-xs"
-      id="nsk-floating-navbar"
+    <header
+      className={`sticky top-0 z-50 transition-colors ${scrolled || open ? "bg-ink/85 backdrop-blur-md border-b border-line" : "bg-transparent border-b border-transparent"}`}
+      id="site-header"
     >
-      <a href="#" className="flex items-center hover:opacity-90 transition-opacity cursor-pointer">
-        <Logo size="sm" />
-      </a>
+      <div className="wrap flex h-16 items-center justify-between gap-4">
+        <a href="#top" className="shrink-0" aria-label="No Show Killer AI, back to top">
+          <Logo size="sm" />
+        </a>
 
-      <div className="hidden md:flex items-center gap-8" id="navbar-menu-links">
-        {navLinks.map((link) => (
-          <a
-            key={link.name}
-            href={link.href}
-            className="text-[10px] lg:text-xs font-bold text-muted-foreground hover:text-foreground hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-[0.24em] font-sans"
-          >
-            {link.name}
+        <nav className="hidden lg:flex items-center gap-7 text-[0.925rem] text-bone-2" aria-label="Primary">
+          {LINKS.map((l) => (
+            <a key={l.href} href={l.href} className="hover:text-bone transition-colors">
+              {l.name}
+            </a>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-2.5">
+          <a href={PORTAL_URL} className="btn hidden sm:inline-flex" target="_blank" rel="noopener noreferrer">
+            Client login
           </a>
-        ))}
+          <a href={BOOKING_URL} className="btn btn-brass" target="_blank" rel="noopener noreferrer">
+            Book a demo
+          </a>
+          <button
+            type="button"
+            className="btn lg:hidden !px-3"
+            aria-expanded={open}
+            aria-controls="mobile-menu"
+            aria-label={open ? "Close menu" : "Open menu"}
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? <X size={18} /> : <Menu size={18} />}
+          </button>
+        </div>
       </div>
 
-      <div className="flex items-center gap-3 sm:gap-4" id="navbar-ctas">
-        <a
-          href="https://app.noshowkillerai.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center h-11 bg-white/[0.02] text-foreground hover:text-primary hover:bg-white/[0.06] border border-white/10 hover:border-primary/30 px-5 rounded-lg uppercase text-[10px] tracking-[0.2em] font-extrabold active:scale-[0.97] transition-all cursor-pointer"
-        >
-          Client Login
-        </a>
-        <a
-          href="https://www.facebook.com/profile.php?id=61585860255283"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center w-11 h-11 bg-white/[0.02] text-primary hover:text-white hover:bg-white/[0.06] border border-white/5 hover:border-primary/20 rounded-lg transition-all active:scale-[0.95] cursor-pointer"
-          title="Follow us on Facebook"
-        >
-          <Facebook size={16} />
-        </a>
-        <a
-          href="https://calendar.app.google/FEyhB3T1gC1Nnk5h6"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hidden md:inline-flex items-center justify-center h-11 bg-primary text-black hover:bg-opacity-95 border border-transparent px-6 rounded-lg uppercase text-[10px] tracking-[0.2em] font-extrabold active:scale-[0.97] hover:shadow-[0_4px_20px_rgba(10,224,0,0.35)] transition-all cursor-pointer"
-        >
-          Book 20m Call
-        </a>
-      </div>
-    </nav>
+      {open && (
+        <div id="mobile-menu" className="lg:hidden border-t border-line bg-ink/95 backdrop-blur-md">
+          <nav className="wrap flex flex-col py-3" aria-label="Mobile">
+            {LINKS.map((l) => (
+              <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="py-3 text-bone-2 hover:text-bone border-b border-line last:border-b-0">
+                {l.name}
+              </a>
+            ))}
+            <a href={PORTAL_URL} className="py-3 text-bone-2 hover:text-bone sm:hidden" target="_blank" rel="noopener noreferrer">
+              Client login
+            </a>
+          </nav>
+        </div>
+      )}
+    </header>
   );
 }
