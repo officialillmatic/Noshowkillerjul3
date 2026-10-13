@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Proposal — No Show Killer AI</title>
+<link rel="icon" type="image/png" href="/nsk-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   NSK PROPOSAL — design tokens
+   Brand: graphite + lime (from CRM). Inverted for document context:
+   proposal is paper-light, dark used as a single anchor moment.
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --paper:#FBFAF8;        /* document stock */
+  --paper-2:#F4F2ED;      /* recessed panels */
+  --graphite:#16191C;     /* brand dark */
+  --graphite-2:#2A3037;
+  --lime:#84D032;         /* brand accent */
+  --lime-deep:#5FA51E;    /* accessible lime for text on light */
+  --ink:#15181B;
+  --ink-2:#4A5158;
+  --muted:#858D95;
+  --rule:#E2DFD8;
+  --rule-2:#CFCBC2;
+  --loss:#B4443A;         /* ledger debit */
+
+  --display:'Archivo',system-ui,sans-serif;
+  --body:'Inter',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+
+  --pad:clamp(22px,5vw,80px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:var(--body);font-size:16px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+:focus-visible{outline:2px solid var(--lime-deep);outline-offset:3px;border-radius:2px}
+
+/* ── shared type ─────────────────────────────────────── */
+.eyebrow{
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+}
+.sec-no{
+  font-family:var(--mono);font-size:11px;font-weight:600;
+  letter-spacing:.14em;color:var(--lime-deep);
+}
+h2{
+  font-family:var(--display);font-weight:800;
+  font-size:clamp(26px,3.6vw,40px);line-height:1.08;
+  letter-spacing:-.025em;margin:10px 0 0;
+}
+h3{
+  font-family:var(--display);font-weight:700;
+  font-size:17px;letter-spacing:-.01em;line-height:1.3;
+}
+p{color:var(--ink-2);max-width:62ch}
+.lead{font-size:clamp(17px,2vw,19px);color:var(--ink-2);line-height:1.62}
+strong{color:var(--ink);font-weight:600}
+
+/* ═══════════ BUILDER (hidden in client view) ═══════════ */
+#builder{
+  position:sticky;top:0;z-index:60;background:var(--graphite);
+  color:#fff;padding:18px var(--pad) 20px;
+  box-shadow:0 1px 0 rgba(255,255,255,.08);
+}
+#builder .bhead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+#builder .btitle{font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:-.01em}
+#builder .bsub{font-family:var(--mono);font-size:11px;color:#8A9299;letter-spacing:.04em}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 14px}
+.f label{
+  display:block;font-family:var(--mono);font-size:10px;font-weight:500;
+  letter-spacing:.11em;text-transform:uppercase;color:#8A9299;margin-bottom:5px;
+}
+.f input,.f select{
+  width:100%;background:#20252A;border:1px solid #333A41;border-radius:7px;
+  padding:9px 11px;color:#fff;font-family:var(--body);font-size:14px;outline:none;
+  transition:border-color .15s;
+}
+.f input:focus,.f select:focus{border-color:var(--lime)}
+.f .hint{font-family:var(--mono);font-size:10px;color:#666D74;margin-top:4px}
+.bactions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;align-items:center}
+.btn{
+  font-family:var(--display);font-weight:700;font-size:13.5px;letter-spacing:.01em;
+  padding:11px 20px;border-radius:8px;border:1px solid transparent;cursor:pointer;
+  transition:transform .12s,filter .15s;
+}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--lime);color:#0F1214}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-ghost{background:transparent;color:#D5DAE0;border-color:#3A4147}
+.btn-ghost:hover{border-color:#5A6169;color:#fff}
+.copied{font-family:var(--mono);font-size:11px;color:var(--lime);letter-spacing:.05em}
+
+/* ═══════════ COVER ═══════════ */
+.cover{
+  background:var(--graphite);color:#fff;padding:clamp(46px,7vw,86px) var(--pad) clamp(40px,6vw,70px);
+  position:relative;overflow:hidden;
+}
+.cover::after{ /* hairline lime rule, the only ornament */
+  content:'';position:absolute;left:0;bottom:0;height:3px;width:100%;
+  background:linear-gradient(90deg,var(--lime) 0%,var(--lime) 34%,#2A3037 34%);
+}
+.cover .eyebrow{color:#7E868E}
+.brandline{display:flex;align-items:center;gap:14px;margin-bottom:clamp(34px,6vw,58px)}
+.brandmark{
+  width:52px;height:52px;border-radius:14px;background:#fff;flex:none;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 20px rgba(0,0,0,.28), 0 0 0 1px rgba(255,255,255,.06);
+}
+.brandmark img{width:78%;height:78%;object-fit:contain;display:block}
+.brandtext{display:flex;flex-direction:column;gap:3px;line-height:1}
+.brandname{font-family:var(--display);font-weight:800;font-size:17px;letter-spacing:-.01em;color:#fff}
+.brandname span{color:var(--lime)}
+.brandtag{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:#7E868E}
+.cover h1{
+  font-family:var(--display);font-weight:900;
+  font-size:clamp(34px,6.4vw,68px);line-height:.98;letter-spacing:-.038em;
+  margin:12px 0 0;max-width:16ch;
+}
+.cover h1 em{font-style:normal;color:var(--lime)}
+.covermeta{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));
+  gap:22px;margin-top:clamp(34px,5vw,54px);
+  padding-top:24px;border-top:1px solid #2E353C;max-width:760px;
+}
+.covermeta .k{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:#7E868E}
+.covermeta .v{font-family:var(--display);font-weight:600;font-size:15px;margin-top:5px;color:#fff}
+
+/* ═══════════ SECTIONS ═══════════ */
+section{padding:clamp(46px,6.5vw,84px) var(--pad);border-bottom:1px solid var(--rule)}
+.shead{margin-bottom:clamp(26px,3.5vw,40px)}
+.shead p{margin-top:14px}
+
+/* ── 01 the leak ── */
+.leakwrap{
+  background:var(--paper-2);border:1px solid var(--rule);border-radius:14px;
+  padding:clamp(24px,3.4vw,38px);margin-top:6px;
+}
+.leakfig{
+  font-family:var(--display);font-weight:900;
+  font-size:clamp(44px,9.5vw,96px);line-height:.9;letter-spacing:-.045em;
+  color:var(--loss);font-variant-numeric:tabular-nums;
+}
+.leaklabel{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:14px}
+.leakbreak{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(122px,1fr));gap:1px;
+  margin-top:26px;background:var(--rule);border:1px solid var(--rule);border-radius:10px;overflow:hidden;
+}
+.leakbreak div{background:var(--paper-2);padding:15px 16px}
+.leakbreak .k{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.leakbreak .v{font-family:var(--mono);font-weight:600;font-size:19px;margin-top:6px;color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* ── 02 what we install ── */
+.auto{
+  display:grid;grid-template-columns:auto 1fr;gap:0 clamp(16px,2.4vw,30px);
+  padding:24px 0;border-top:1px solid var(--rule);
+}
+.auto:first-of-type{border-top:none}
+.auto .ref{
+  font-family:var(--mono);font-weight:600;font-size:12px;color:var(--lime-deep);
+  letter-spacing:.06em;padding-top:3px;
+}
+.auto .body h3{margin-bottom:7px}
+.auto .body p{font-size:15.5px;max-width:64ch}
+.auto .when{
+  font-family:var(--mono);font-size:11.5px;color:var(--muted);
+  margin-top:9px;letter-spacing:.02em;
+}
+
+/* ── 03 ledger (signature element) ── */
+.ledger{
+  border:1px solid var(--rule-2);border-radius:14px;overflow:hidden;background:#fff;
+}
+.ledgerhead{
+  display:grid;grid-template-columns:1fr auto;gap:16px;
+  padding:15px clamp(16px,2.4vw,26px);background:var(--paper-2);
+  border-bottom:1px solid var(--rule-2);
+}
+.ledgerhead span{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.ledgerhead span:last-child{text-align:right}
+.lrow{
+  display:grid;grid-template-columns:1fr auto;gap:16px;align-items:baseline;
+  padding:15px clamp(16px,2.4vw,26px);border-bottom:1px solid var(--rule);
+}
+.lrow .what{font-size:15px;color:var(--ink);font-weight:500}
+.lrow .assume{
+  display:block;font-family:var(--mono);font-size:11px;color:var(--muted);
+  margin-top:4px;letter-spacing:.01em;font-weight:400;
+}
+.lrow .amt{
+  font-family:var(--mono);font-weight:600;font-size:17px;
+  font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--lime-deep);
+}
+.lrow.debit .amt{color:var(--loss)}
+.lrow.total{background:var(--graphite);border-bottom:none;padding-top:20px;padding-bottom:20px}
+.lrow.total .what{color:#fff;font-family:var(--display);font-weight:700;font-size:16px}
+.lrow.total .assume{color:#8A9299}
+.lrow.total .amt{color:var(--lime);font-size:clamp(22px,3.4vw,30px);font-weight:600}
+.roinote{
+  font-family:var(--mono);font-size:12px;color:var(--muted);
+  margin-top:16px;letter-spacing:.02em;
+}
+
+/* ── 04 timeline ── */
+.tl{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+.tl .step{background:var(--paper);padding:22px clamp(16px,2vw,24px)}
+.tl .wk{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--lime-deep)}
+.tl h3{margin:9px 0 7px}
+.tl p{font-size:14.5px}
+
+/* ── 05 investment ── */
+.pricebox{border:1px solid var(--rule-2);border-radius:14px;overflow:hidden;background:#fff;max-width:660px}
+.prow{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:baseline;padding:18px clamp(16px,2.4vw,26px);border-bottom:1px solid var(--rule)}
+.prow .what{font-weight:600;color:var(--ink);font-size:15.5px}
+.prow .sub{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:4px;font-weight:400;letter-spacing:.01em}
+.prow .amt{font-family:var(--mono);font-weight:600;font-size:18px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.prow.opt{background:var(--paper-2)}
+.prow.opt .what::after{
+  content:'OPTIONAL';font-family:var(--mono);font-size:9px;letter-spacing:.12em;
+  background:var(--rule-2);color:var(--ink-2);padding:2.5px 6px;border-radius:4px;margin-left:9px;vertical-align:2px;
+}
+.prow.due{background:var(--graphite);border-bottom:none}
+.prow.due .what{color:#fff;font-family:var(--display);font-weight:700}
+.prow.due .sub{color:#8A9299}
+.prow.due .amt{color:var(--lime);font-size:clamp(20px,3vw,26px)}
+.incl{margin-top:22px;display:flex;flex-wrap:wrap;gap:8px}
+.incl span{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.02em;color:var(--ink-2);
+  background:var(--paper-2);border:1px solid var(--rule);border-radius:20px;padding:6px 13px;
+}
+
+/* ── 06 terms ── */
+.terms{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:clamp(18px,2.6vw,34px)}
+.terms .t h3{margin-bottom:7px;font-size:15.5px}
+.terms .t p{font-size:14.5px}
+
+/* ── accept ── */
+.accept{background:var(--graphite);color:#fff;border-bottom:none}
+.accept h2{color:#fff;max-width:17ch}
+.accept .lead{color:#AEB5BC;margin-top:14px}
+.acceptrow{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:30px}
+.btn-accept{
+  background:var(--lime);color:#0F1214;font-family:var(--display);font-weight:800;
+  font-size:16px;padding:16px 32px;border-radius:9px;border:none;cursor:pointer;
+  text-decoration:none;display:inline-block;transition:filter .15s,transform .12s;
+}
+.btn-accept:hover{filter:brightness(1.08)}
+.btn-accept:active{transform:translateY(1px)}
+.repcard{
+  margin-top:34px;padding-top:26px;border-top:1px solid #2E353C;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:20px;max-width:700px;
+}
+.repcard .k{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:#7E868E}
+.repcard .v{font-size:15px;margin-top:5px;color:#fff}
+.repcard a{color:var(--lime);text-decoration:none}
+.repcard a:hover{text-decoration:underline}
+.validnote{font-family:var(--mono);font-size:11.5px;color:#7E868E;margin-top:22px;letter-spacing:.03em}
+
+footer{padding:34px var(--pad) 40px;text-align:center;border-top:1px solid var(--rule);margin-top:20px}
+footer .fmark{width:34px;height:34px;border-radius:9px;background:var(--graphite);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px}
+footer .fmark img{width:80%;height:80%;object-fit:contain}
+footer p{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em;margin:0 auto}
+
+/* ── count-up: the one motion moment ── */
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+
+/* ── print → clean PDF ── */
+@media print{
+  @page{margin:14mm}
+  #builder{display:none!important}
+  body{background:#fff;font-size:11.5pt}
+  .cover{background:var(--graphite)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .brandmark,.footer .fmark,footer .fmark{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .lrow.total,.prow.due,.accept{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  section{page-break-inside:avoid;padding:22px 0}
+  .auto,.ledger,.pricebox,.tl{page-break-inside:avoid}
+  .btn-accept{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ BUILDER — hidden when ?d= is present ══════════════ -->
+<div id="builder">
+  <div class="bhead">
+    <div class="btitle">Proposal builder</div>
+    <div class="bsub">Fill in → Copy client link. The client never sees this panel.</div>
+  </div>
+
+  <div class="grid">
+    <div class="f"><label>Industry</label><select id="i-industry">
+      <option value="clinic" selected>Medical / Dental clinic</option>
+      <option value="home">Home services (plumbing, HVAC, electrical)</option>
+      <option value="salon">Salon / Spa / Med-spa</option>
+      <option value="auto">Auto (repair, dealership)</option>
+    </select><div class="hint">Sets the wording throughout</div></div>
+    <div class="f"><label>Business name</label><input id="i-clinic" value="Riverbend Family Dental"></div>
+    <div class="f"><label>Contact name</label><input id="i-contact" value="Dr. Karen Whitfield"></div>
+    <div class="f"><label>City / State</label><input id="i-city" value="Columbus, OH"></div>
+    <div class="f"><label>Plan</label><select id="i-plan">
+      <option value="starter">Starter — $497</option>
+      <option value="growth" selected>Growth — $997</option>
+      <option value="scale">Scale — $1,997</option>
+    </select></div>
+    <div class="f"><label>Appts / week</label><input id="i-appts" type="number" value="110"><div class="hint">Jobs / bookings per week</div></div>
+    <div class="f"><label>No-shows / week</label><input id="i-ns" type="number" value="12"><div class="hint">Their number, not yours</div></div>
+    <div class="f"><label>Avg ticket value $</label><input id="i-val" type="number" value="280"></div>
+    <div class="f"><label>Dormant customers</label><input id="i-dorm" type="number" value="2200"><div class="hint">Scale only — blank to omit</div></div>
+    <div class="f"><label>Setup fee $</label><input id="i-setup" type="number" value="1497"></div>
+    <div class="f"><label>Support add-on $</label><input id="i-supp" type="number" value="297"><div class="hint">0 = hide the line</div></div>
+    <div class="f"><label>Valid for (days)</label><input id="i-valid" type="number" value="14"></div>
+    <div class="f"><label>Prepared by</label><input id="i-rep" value="Jaime Bejarano"></div>
+    <div class="f"><label>Rep email</label><input id="i-email" value="jaime@noshowkillerai.com"></div>
+    <div class="f"><label>Rep phone</label><input id="i-phone" value="(614) 555-0142"></div>
+    <div class="f"><label>Accept link</label><input id="i-cta" value="https://app.noshowkillerai.com"><div class="hint">Checkout or booking URL</div></div>
+  </div>
+
+  <div class="bactions">
+    <button class="btn btn-primary" onclick="copyLink()">Copy client link</button>
+    <button class="btn btn-ghost" onclick="window.print()">Save as PDF</button>
+    <button class="btn btn-ghost" onclick="render()">Refresh preview</button>
+    <span class="copied" id="copied"></span>
+  </div>
+</div>
+
+<!-- ══════════════ PROPOSAL ══════════════ -->
+<main id="doc"></main>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   1. PLAN DEFINITIONS
+   Automations shown per tier + the recovery model behind the ledger.
+   Recovery rates are deliberately CONSERVATIVE — an inflated number
+   that the weekly report can't back up costs the account later.
+   ═══════════════════════════════════════════════════════════════ */
+const WEEKS_PER_MONTH = 4.33;
+
+/* Industry vocabulary — swaps the wording so the same proposal reads right for
+   a dental office, a plumber, a med-spa or an auto shop. Math is identical. */
+const VOCAB = {
+  clinic: { noun:'patient', nounPl:'patients', slot:'chair', slotPl:'chairs',
+    appt:'appointment', apptPl:'appointments', book:'booked appointment',
+    headline:'Stop paying for chairs that <em>sit empty.</em>',
+    leakLabel:'Annual revenue lost to no-shows',
+    situationH:'What empty chairs are costing you',
+    records:'patient records', firstVisit:'new patient first visit',
+    orgWord:'Practice' },
+  home: { noun:'customer', nounPl:'customers', slot:'job', slotPl:'jobs',
+    appt:'job', apptPl:'jobs', book:'booked job',
+    headline:'Stop paying for jobs that <em>never get booked.</em>',
+    leakLabel:'Annual revenue lost to missed calls & no-shows',
+    situationH:'What missed calls are costing you',
+    records:'customer records', firstVisit:'new customer first job',
+    orgWord:'Company' },
+  salon: { noun:'client', nounPl:'clients', slot:'chair', slotPl:'chairs',
+    appt:'appointment', apptPl:'appointments', book:'booked appointment',
+    headline:'Stop paying for chairs that <em>sit empty.</em>',
+    leakLabel:'Annual revenue lost to no-shows',
+    situationH:'What empty chairs are costing you',
+    records:'client records', firstVisit:'new client first visit',
+    orgWord:'Studio' },
+  auto: { noun:'customer', nounPl:'customers', slot:'bay', slotPl:'bays',
+    appt:'appointment', apptPl:'appointments', book:'booked job',
+    headline:'Stop paying for bays that <em>sit empty.</em>',
+    leakLabel:'Annual revenue lost to missed calls & no-shows',
+    situationH:'What empty bays are costing you',
+    records:'customer records', firstVisit:'new customer first visit',
+    orgWord:'Shop' },
+};
+function vocab(ind){ return VOCAB[ind] || VOCAB.clinic; }
+
+const PLANS = {
+  starter:{
+    name:'Starter', price:497, minutes:500,
+    tagline:'Confirmation Engine',
+    autos:[
+      ['A1','Appointment confirmation calls','Every patient with an upcoming appointment gets a real conversation — not a text they can swipe away. We ask for a clear yes or no and write the answer to your dashboard.','Two waves: 48 hours out, then 24 hours out'],
+      ['A2','At-risk slot alerts','The moment someone cancels or can\u2019t be reached, your front desk gets a ranked list \u2014 tomorrow\u2019s 9am at the top, not buried in an inbox.','Within 30 minutes of each calling wave'],
+      ['A3','Weekly recovered chair time report','One email every Sunday. Not a dashboard to log into \u2014 a number. Appointments protected, and what that was worth.','Sundays, 6:00pm']
+    ]
+  },
+  growth:{
+    name:'Growth', price:997, minutes:1500,
+    tagline:'Chair Protection System',
+    autos:[
+      ['A1','Appointment confirmation calls','Every patient with an upcoming appointment gets a real conversation — not a text they can swipe away. We ask for a clear yes or no and write the answer to your dashboard.','Two waves: 48 hours out, then 24 hours out'],
+      ['A2','At-risk slot alerts','The moment someone cancels or can\u2019t be reached, your front desk gets a ranked list \u2014 tomorrow\u2019s 9am at the top, not buried in an inbox.','Within 30 minutes of each calling wave'],
+      ['A3','Weekly recovered chair time report','One email every Sunday. Not a dashboard to log into \u2014 a number. Appointments protected, and what that was worth.','Sundays, 6:00pm'],
+      ['A4','Same-day no-show recovery','When someone doesn\u2019t show, we call while they still feel bad about it \u2014 no blame, two specific times offered. Most of the ones who rebook do it in that window.','15 minutes after the missed slot'],
+      ['A5','Cancellation waitlist backfill','A slot opens, we call five waitlist patients at the same time. First yes takes it, everyone else gets a courteous note. That hour stops being worth zero.','Within minutes of any cancellation'],
+      ['A6','After-hours and overflow line','The calls your team can\u2019t pick up get answered anyway \u2014 evenings, lunch, weekends, and anything that would have died on hold. New patients land on your screen by 8am.','Nights, weekends, lunch, busy-signal overflow']
+    ]
+  },
+  scale:{
+    name:'Scale', price:1997, minutes:4000,
+    tagline:'Revenue Recovery Suite',
+    autos:[
+      ['A1','Appointment confirmation calls','Every patient with an upcoming appointment gets a real conversation — not a text they can swipe away. We ask for a clear yes or no and write the answer to your dashboard.','Two waves: 48 hours out, then 24 hours out'],
+      ['A2','At-risk slot alerts','The moment someone cancels or can\u2019t be reached, your front desk gets a ranked list \u2014 tomorrow\u2019s 9am at the top, not buried in an inbox.','Within 30 minutes of each calling wave'],
+      ['A3','Weekly recovered chair time report','One email every Sunday. Not a dashboard to log into \u2014 a number. Appointments protected, and what that was worth.','Sundays, 6:00pm'],
+      ['A4','Same-day no-show recovery','When someone doesn\u2019t show, we call while they still feel bad about it \u2014 no blame, two specific times offered. Most of the ones who rebook do it in that window.','15 minutes after the missed slot'],
+      ['A5','Cancellation waitlist backfill','A slot opens, we call five waitlist patients at the same time. First yes takes it, everyone else gets a courteous note. That hour stops being worth zero.','Within minutes of any cancellation'],
+      ['A6','After-hours and overflow line','The calls your team can\u2019t pick up get answered anyway \u2014 evenings, lunch, weekends, and anything that would have died on hold. New patients land on your screen by 8am.','Nights, weekends, lunch, busy-signal overflow'],
+      ['A7','Dormant patient reactivation','The patients who chose you once and quietly stopped coming. We work that list in controlled batches — a check-in, not a pitch.','300–400 records per month'],
+      ['A8','Unscheduled treatment follow-up','Work your doctor already diagnosed and presented that never made it onto the calendar. We never quote price or insurance — that stays with your team.','Monthly, highest-value cases first'],
+      ['A9','Recall and hygiene due','Swept weekly, not monthly. A patient two weeks overdue is easy to bring back. Eight months overdue is a different conversation.','Every week'],
+      ['A10','Per-location numbers and reporting','Each location gets its own number, its own agent that knows those providers and hours, and its own report — plus one rollup so you can compare them side by side.','Set up during onboarding'],
+      ['A11','Monthly strategy review','Thirty minutes with us each month. We show you the numbers, pick one thing to improve, and set the next campaign.','Monthly, 30 minutes']
+    ]
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   2. RECOVERY MODEL
+   Each ledger line carries its own visible assumption. If a prospect
+   challenges a number, the assumption is right there on the page —
+   that is what makes the whole document credible.
+   ═══════════════════════════════════════════════════════════════ */
+function ledgerFor(plan, nsMonth, val, dormant, ind){
+  const V = vocab(ind);
+  const L = [];
+  const round = n => Math.round(n);
+
+  // A1 — prevention. Same base rate across tiers.
+  const prevented = nsMonth * 0.35;
+  L.push({what:'No-shows prevented', assume:`35% of ${round(nsMonth)} monthly no-shows \u00d7 $${val}`, amt:prevented*val});
+
+  if(plan!=='starter'){
+    // A4 — recovery works on what prevention didn't catch.
+    const recovered = (nsMonth - prevented) * 0.25;
+    L.push({what:'No-shows recovered and rebooked', assume:`25% of the ${round(nsMonth-prevented)} that still slip \u00d7 $${val}`, amt:recovered*val});
+    // A5 — conservative flat 4 fills/mo.
+    L.push({what:`Cancelled ${V.slotPl} backfilled`, assume:`4 ${V.slotPl} refilled from waitlist \u00d7 $${val}`, amt:4*val});
+    // A6 — new customer first visit valued at 2x.
+    L.push({what:`New ${V.nounPl} caught after hours`, assume:`2 new ${V.nounPl} \u00d7 $${val*2} first ${V.appt}`, amt:2*(val*2)});
+  }
+
+  if(plan==='scale'){
+    if(dormant>0){
+      const batch = Math.min(dormant, 350);
+      L.push({what:`Dormant ${V.nounPl} reactivated`, assume:`4% of ${batch} called each month \u00d7 $${val}`, amt:batch*0.04*val});
+    }
+    L.push({what:'Larger jobs scheduled', assume:`5% of 150 open estimates \u00d7 $${val*3} avg`, amt:150*0.05*(val*3)});
+    L.push({what:`Overdue ${V.nounPl} brought current`, assume:`8 overdue ${V.nounPl} returned \u00d7 $${val}`, amt:8*val});
+  }
+  return L;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   3. STATE — from ?d= (client view) or from the builder form
+   ═══════════════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const money = n => '$' + Math.round(n).toLocaleString('en-US');
+
+function readForm(){
+  return {
+    industry:$('i-industry').value,
+    clinic:$('i-clinic').value.trim(), contact:$('i-contact').value.trim(),
+    city:$('i-city').value.trim(), plan:$('i-plan').value,
+    appts:+$('i-appts').value||0, ns:+$('i-ns').value||0, val:+$('i-val').value||0,
+    dorm:+$('i-dorm').value||0, setup:+$('i-setup').value||0, supp:+$('i-supp').value||0,
+    valid:+$('i-valid').value||14, rep:$('i-rep').value.trim(),
+    email:$('i-email').value.trim(), phone:$('i-phone').value.trim(),
+    cta:$('i-cta').value.trim()
+  };
+}
+
+// Unicode-safe base64 so clinic names with accents survive the URL.
+const enc = o => btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+const dec = s => JSON.parse(decodeURIComponent(escape(atob(s))));
+
+function copyLink(){
+  const url = location.origin + location.pathname + '?d=' + encodeURIComponent(enc(readForm()));
+  navigator.clipboard.writeText(url).then(()=>{
+    $('copied').textContent = 'Link copied \u2014 paste it into your follow-up email';
+    setTimeout(()=>$('copied').textContent='', 4000);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   4. RENDER
+   ═══════════════════════════════════════════════════════════════ */
+function render(data){
+  const d = data || readForm();
+  const P = PLANS[d.plan] || PLANS.growth;
+  const V = vocab(d.industry);
+
+  const nsMonth   = d.ns * WEEKS_PER_MONTH;
+  const lossMonth = nsMonth * d.val;
+  const lossYear  = d.ns * 52 * d.val;
+
+  const lines = ledgerFor(d.plan, nsMonth, d.val, d.dorm, d.industry);
+  const gross = lines.reduce((s,l)=>s+l.amt, 0);
+  const net   = gross - P.price;
+  const roi   = (gross / P.price).toFixed(1);
+
+  const today = new Date();
+  const until = new Date(today.getTime() + d.valid*864e5);
+  const fmt = dt => dt.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  const propNo = 'NSK-' + today.getFullYear() + String(today.getMonth()+1).padStart(2,'0')
+               + '-' + (d.clinic.replace(/[^A-Za-z]/g,'').slice(0,3).toUpperCase() || 'XXX');
+
+  const dueToday = d.setup + P.price;
+
+  $('doc').innerHTML = `
+  <!-- ── COVER ── -->
+  <header class="cover">
+    <div class="brandline">
+      <div class="brandmark"><img src="/nsk-icon.png" alt="No Show Killer AI"></div>
+      <div class="brandtext">
+        <div class="brandname">No Show Killer<span> AI</span></div>
+        <div class="brandtag">AI Automations · Real Results</div>
+      </div>
+    </div>
+    <div class="eyebrow">Prepared for ${esc(d.clinic)}</div>
+    <h1>${V.headline}</h1>
+    <div class="covermeta">
+      <div><div class="k">Prepared for</div><div class="v">${esc(d.contact)}</div></div>
+      <div><div class="k">${V.orgWord}</div><div class="v">${esc(d.city)}</div></div>
+      <div><div class="k">Proposal</div><div class="v">${propNo}</div></div>
+      <div><div class="k">Date</div><div class="v">${fmt(today)}</div></div>
+      <div><div class="k">Valid until</div><div class="v">${fmt(until)}</div></div>
+    </div>
+  </header>
+
+  <!-- ── 01 THE LEAK ── -->
+  <section>
+    <div class="shead">
+      <div class="sec-no">01 &nbsp;/&nbsp; THE SITUATION</div>
+      <h2>${V.situationH}</h2>
+      <p class="lead">These are the numbers you gave us on our call. Nothing here is an estimate of your business
+      &mdash; it&rsquo;s your own figures, carried out over a year.</p>
+    </div>
+    <div class="leakwrap">
+      <div class="leakfig" id="bigfig">${money(lossYear)}</div>
+      <div class="leaklabel">${V.leakLabel}</div>
+      <div class="leakbreak">
+        <div><div class="k">Appts / week</div><div class="v">${d.appts}</div></div>
+        <div><div class="k">No-shows / week</div><div class="v">${d.ns}</div></div>
+        <div><div class="k">Avg ticket value</div><div class="v">$${d.val}</div></div>
+        <div><div class="k">Lost per week</div><div class="v">${money(d.ns*d.val)}</div></div>
+        <div><div class="k">Lost per month</div><div class="v">${money(lossMonth)}</div></div>
+      </div>
+    </div>
+    <p style="margin-top:26px">This never appears on a report, because nothing gets billed. That&rsquo;s exactly why it
+    goes unmanaged for years &mdash; <strong>a loss you can&rsquo;t see is a loss you can&rsquo;t fix.</strong></p>
+  </section>
+
+  <!-- ── 02 WHAT WE INSTALL ── -->
+  <section>
+    <div class="shead">
+      <div class="sec-no">02 &nbsp;/&nbsp; WHAT WE INSTALL</div>
+      <h2>${esc(P.name)} &mdash; ${esc(P.tagline)}</h2>
+      <p class="lead">${P.autos.length} automations, live in 7 business days. Every one runs on your existing
+      schedule &mdash; nothing gets installed on your servers and nothing plugs into your ${V.records}.</p>
+    </div>
+    ${P.autos.map(a=>`
+      <div class="auto">
+        <div class="ref">${a[0]}</div>
+        <div class="body">
+          <h3>${a[1]}</h3>
+          <p>${a[2]}</p>
+          <div class="when">&#9679; ${a[3]}</div>
+        </div>
+      </div>`).join('')}
+  </section>
+
+  <!-- ── 03 THE LEDGER (signature) ── -->
+  <section>
+    <div class="shead">
+      <div class="sec-no">03 &nbsp;/&nbsp; THE LEDGER</div>
+      <h2>What comes back, and what it costs</h2>
+      <p class="lead">Every line shows the assumption behind it. We&rsquo;ve kept these deliberately conservative
+      &mdash; you&rsquo;ll be checking them against your own weekly report, so they need to hold up.</p>
+    </div>
+    <div class="ledger">
+      <div class="ledgerhead"><span>Monthly recovery</span><span>Amount</span></div>
+      ${lines.map(l=>`
+        <div class="lrow">
+          <div class="what">${l.what}<span class="assume">${l.assume}</span></div>
+          <div class="amt">${money(l.amt)}</div>
+        </div>`).join('')}
+      <div class="lrow debit">
+        <div class="what">${esc(P.name)} plan<span class="assume">${P.minutes.toLocaleString()} calling minutes included</span></div>
+        <div class="amt">&minus;${money(P.price)}</div>
+      </div>
+      <div class="lrow total">
+        <div class="what">Net monthly gain<span class="assume">Before any setup investment</span></div>
+        <div class="amt">${money(net)}</div>
+      </div>
+    </div>
+    <div class="roinote">Return of ${roi}&times; on the monthly plan &nbsp;&middot;&nbsp; break-even at
+    ${Math.max(1,Math.ceil(P.price/d.val))} recovered ${Math.ceil(P.price/d.val)===1?'appointment':'appointments'} per month</div>
+  </section>
+
+  <!-- ── 04 TIMELINE ── -->
+  <section>
+    <div class="shead">
+      <div class="sec-no">04 &nbsp;/&nbsp; TIMELINE</div>
+      <h2>Live in 7 business days</h2>
+    </div>
+    <div class="tl">
+      <div class="step"><div class="wk">Days 1–3</div><h3>Build and voice</h3>
+        <p>We build the agent around your business &mdash; your services, your hours, your greeting. You listen to
+        test calls and tell us what to change before any ${V.noun} hears it.</p></div>
+      <div class="step"><div class="wk">Days 4–5</div><h3>Connect the schedule</h3>
+        <p>You connect your calendar or export the daily schedule to a shared folder &mdash; about twenty seconds a day.
+        We handle everything after that and train your team on the dashboard.</p></div>
+      <div class="step"><div class="wk">Days 6–7</div><h3>Go live</h3>
+        <p>Calls start on a small batch first, then full volume once you&rsquo;re happy. Your first weekly report
+        lands that Sunday.</p></div>
+    </div>
+  </section>
+
+  <!-- ── 05 INVESTMENT ── -->
+  <section>
+    <div class="shead">
+      <div class="sec-no">05 &nbsp;/&nbsp; INVESTMENT</div>
+      <h2>Pricing</h2>
+    </div>
+    <div class="pricebox">
+      <div class="prow">
+        <div class="what">Onboarding<span class="sub">One time \u00b7 agent build, number, schedule mapping, test week</span></div>
+        <div class="amt">${money(d.setup)}</div>
+      </div>
+      <div class="prow">
+        <div class="what">${esc(P.name)} plan<span class="sub">Monthly \u00b7 ${P.minutes.toLocaleString()} calling minutes included</span></div>
+        <div class="amt">${money(P.price)}<span style="font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:400">/mo</span></div>
+      </div>
+      ${d.supp>0 ? `
+      <div class="prow opt">
+        <div class="what">Priority support<span class="sub">Monthly strategy call, same-day response, 2 script changes per month</span></div>
+        <div class="amt">${money(d.supp)}<span style="font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:400">/mo</span></div>
+      </div>` : ''}
+      <div class="prow due">
+        <div class="what">Due to start<span class="sub">Onboarding + first month${d.supp>0?' \u00b7 support optional':''}</span></div>
+        <div class="amt">${money(dueToday)}</div>
+      </div>
+    </div>
+    <div class="incl">
+      <span>No contract &mdash; cancel any time</span>
+      <span>No setup on your servers</span>
+      <span>Unused minutes never billed twice</span>
+      <span>Extra minutes from $0.45</span>
+    </div>
+  </section>
+
+  <!-- ── 06 TERMS ── -->
+  <section>
+    <div class="shead">
+      <div class="sec-no">06 &nbsp;/&nbsp; TERMS</div>
+      <h2>The short version</h2>
+    </div>
+    <div class="terms">
+      <div class="t"><h3>Subscription &amp; cancellation</h3><p>Billed monthly (or annually) on a recurring basis. Cancel any time
+      from your dashboard or by email; billing stops at the end of the current cycle and you keep your call records.</p></div>
+      <div class="t"><h3>Minutes</h3><p>Your plan includes ${P.minutes.toLocaleString()} minutes each month. They reset
+      on your billing date and don&rsquo;t roll over &mdash; add a pack any time from the portal.</p></div>
+      <div class="t"><h3>Billing &amp; refunds</h3><p>Payments run through PayPal. Because the service is delivered continuously,
+      each billing period is earned and non-refundable once your agent is active; cancelling stops future billing rather
+      than refunding the current period.</p></div>
+      <div class="t"><h3>Your data</h3><p>We only ever see what you share &mdash; name, phone, ${V.appt} time. Data is
+      encrypted in transit and at rest, never sold or shared, and never plugged into your ${V.records}.</p></div>
+      <div class="t"><h3>Call recording &amp; compliance</h3><p>The platform includes AI-identification greetings and configurable
+      consent disclosures so you can meet TCPA and your state&rsquo;s call-recording laws. You enable the ones your
+      jurisdiction requires; we&rsquo;ll walk you through it at setup.</p></div>
+      <div class="t"><h3>Onboarding fee</h3><p>Covers the build and is due before work starts. If we can&rsquo;t get you
+      live within 7 business days for a reason on our side, it&rsquo;s refunded in full.</p></div>
+      <div class="t"><h3>Governing law</h3><p>These summary terms are governed by the laws of the State of Ohio, with disputes
+      resolved by binding individual arbitration (AAA). Nothing here waives your rights under applicable consumer law.</p></div>
+      <div class="t"><h3>Full agreement</h3><p>This is a plain-language summary. The complete, binding Terms of Service at
+      <strong>noshowkillerai.com/terms</strong> govern the relationship and control if anything here differs.</p></div>
+    </div>
+  </section>
+
+  <!-- ── ACCEPT ── -->
+  <section class="accept">
+    <div class="sec-no" style="color:var(--lime)">READY WHEN YOU ARE</div>
+    <h2>Let&rsquo;s stop the leak.</h2>
+    <p class="lead">Accept below and your agent is live in <strong>7 business days</strong> &mdash; every missed call answered
+    and every ${V.appt} confirmed. Every week you wait is money that doesn&rsquo;t come back. If something here needs
+    tweaking, reply and we&rsquo;ll adjust it before you sign off.</p>
+    <div class="acceptrow">
+      <a class="btn-accept" href="${esc(d.cta)}" target="_blank" rel="noopener">Accept and get started</a>
+    </div>
+    <div class="repcard">
+      <div><div class="k">Prepared by</div><div class="v">${esc(d.rep)}</div></div>
+      <div><div class="k">Email</div><div class="v"><a href="mailto:${esc(d.email)}">${esc(d.email)}</a></div></div>
+      <div><div class="k">Direct</div><div class="v"><a href="tel:${esc(d.phone.replace(/[^0-9+]/g,''))}">${esc(d.phone)}</a></div></div>
+    </div>
+    <div class="validnote">Pricing held until ${fmt(until)} &nbsp;&middot;&nbsp; Proposal ${propNo}</div>
+  </section>
+
+  <footer>
+    <div class="fmark"><img src="/nsk-icon.png" alt=""></div>
+    <p>No Show Killer AI &nbsp;&middot;&nbsp; noshowkillerai.com</p>
+  </footer>
+  `;
+
+  countUp(lossYear);
+}
+
+// Escapes both quote styles — same helper convention as admin.html.
+function esc(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* The single motion moment: the annual loss figure counts up on load.
+   It's the emotional core of the whole document, so it gets the animation
+   and nothing else does. Skipped entirely for reduced-motion users. */
+function countUp(target){
+  const el = $('bigfig');
+  if(!el) return;
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const dur = 1100, t0 = performance.now();
+  function frame(t){
+    const p = Math.min(1,(t-t0)/dur);
+    const eased = 1 - Math.pow(1-p, 3);          // ease-out cubic
+    el.textContent = '$' + Math.round(target*eased).toLocaleString('en-US');
+    if(p < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   5. BOOT — ?d= present means this is the client's view
+   ═══════════════════════════════════════════════════════════════ */
+// Push a data object back into the builder form fields.
+function fillForm(d){
+  const set = (id,v) => { const el = $(id); if(el!=null && v!=null && v!=='') el.value = v; };
+  if(d.industry && $('i-industry')) $('i-industry').value = d.industry;
+  set('i-clinic',d.clinic); set('i-contact',d.contact); set('i-city',d.city);
+  if(d.plan) $('i-plan').value = d.plan;
+  set('i-appts',d.appts); set('i-ns',d.ns); set('i-val',d.val); set('i-dorm',d.dorm);
+  set('i-setup',d.setup); set('i-supp',d.supp); set('i-valid',d.valid);
+  set('i-rep',d.rep); set('i-email',d.email); set('i-phone',d.phone); set('i-cta',d.cta);
+}
+
+(function boot(){
+  const params = new URLSearchParams(location.search);
+  const q = params.get('d');
+  // Client-facing link: builder hidden, proposal only.
+  if(q){
+    try{
+      $('builder').style.display = 'none';
+      render(dec(q));
+      return;
+    }catch(e){ /* malformed link — fall through to the builder */ }
+  }
+  // Rep prefill link (from the CRM): fill the form but keep the builder,
+  // so the rep can adjust the numbers before copying the client link.
+  const pf = params.get('prefill');
+  if(pf){
+    try{ fillForm(dec(pf)); }catch(e){ /* ignore a bad prefill */ }
+  }
+  render();
+  // Live preview as you type.
+  document.querySelectorAll('#builder input,#builder select')
+    .forEach(el => el.addEventListener('change', () => render()));
+})();
+</script>
+</body>
+</html>

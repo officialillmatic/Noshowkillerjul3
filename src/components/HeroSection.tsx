@@ -187,13 +187,13 @@ export default function HeroSection() {
           >
             {/* Primary Action Button: Features neon-green dynamic pulsing on hover */}
             <a 
-              href="https://cal.com/nicole-bejarano-u04dax/30min"
+              href="https://calendar.app.google/FEyhB3T1gC1Nnk5h6"
               target="_blank"
               rel="noopener noreferrer"
               className="pointer-events-auto inline-flex items-center justify-center bg-primary text-primary-foreground px-8 py-4 rounded-lg font-extrabold cursor-pointer transition-all active:scale-[0.97] shadow-lg hover:animate-pulse-glow"
               id="btn-book-call-primary"
             >
-              Book 30m Demo Call
+              Book 20m Demo Call
             </a>
 
             {/* Secondary Action Button: Clean aesthetic high contrast white borders */}

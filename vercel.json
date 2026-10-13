@@ -1,0 +1,10 @@
+{
+  "framework": "vite",
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/crm", "destination": "/crm.html" },
+    { "source": "/((?!crm).*)", "destination": "/index.html" }
+  ]
+}

@@ -50,12 +50,12 @@ export default function Navbar() {
           <Facebook size={16} />
         </a>
         <a
-          href="https://cal.com/nicole-bejarano-u04dax/30min"
+          href="https://calendar.app.google/FEyhB3T1gC1Nnk5h6"
           target="_blank"
           rel="noopener noreferrer"
           className="hidden md:inline-flex items-center justify-center h-11 bg-primary text-black hover:bg-opacity-95 border border-transparent px-6 rounded-lg uppercase text-[10px] tracking-[0.2em] font-extrabold active:scale-[0.97] hover:shadow-[0_4px_20px_rgba(10,224,0,0.35)] transition-all cursor-pointer"
         >
-          Book 30m Call
+          Book 20m Call
         </a>
       </div>
     </nav>

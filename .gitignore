@@ -6,3 +6,5 @@ coverage/
 *.log
 .env*
 !.env.example
+.vercel
+public/videos/_originals_backup/

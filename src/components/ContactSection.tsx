@@ -1,5 +1,26 @@
 import React, { useState } from "react";
-import { Sparkles, Check, Send, CheckCircle2, Calendar, Clock, Phone, Mail, Building, User, Facebook } from "lucide-react";
+import { Sparkles, Check, Send, CheckCircle2, Calendar, Clock, Phone, Mail, Building, User, Facebook, AlertCircle, ArrowRight } from "lucide-react";
+
+/**
+ * Supabase connection for lead capture.
+ * NOTE: the "anon" key is PUBLIC by design — it ships in every Supabase frontend.
+ * It is safe here because the `site_demo_requests` table has Row Level Security
+ * with an INSERT-only policy: the browser can write a lead, but can never read
+ * leads back out. Only the server-side service_role key can read them.
+ */
+const SUPABASE_URL = "https://cuaekpirqkckbuocsvyk.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1YWVrcGlycWtja2J1b2NzdnlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwOTE5MDYsImV4cCI6MjA5NTY2NzkwNn0.xtmmGmmUcoxcRoEbh8ICvoQwApFWg4Hzt3QmIZhlpIg";
+
+/** Your live Google booking page — the single source of truth for scheduling. */
+const BOOKING_URL = "https://calendar.app.google/FEyhB3T1gC1Nnk5h6";
+
+/** Human-readable labels for the pain-point values we store. */
+const CONCERN_LABELS: Record<string, string> = {
+  voicemails: "Missed voicemail leads",
+  noshows: "High appointment no-shows",
+  overload: "Staff overloaded with calls",
+  metrics: "Seeking live dashboard metrics",
+};
 
 export default function ContactSection() {
   const [formData, setFormData] = useState({
@@ -9,42 +30,75 @@ export default function ContactSection() {
     businessName: "",
     painPoint: "voicemails",
   });
-  const [selectedDay, setSelectedDay] = useState("Jun 16");
-  const [selectedTime, setSelectedTime] = useState("10:00 AM");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
 
-  const timeSlots = ["09:00 AM", "10:30 AM", "01:00 PM", "02:30 PM", "04:00 PM"];
-  const days = [
-    { label: "Tue Jun 16", value: "Jun 16" },
-    { label: "Wed Jun 17", value: "Jun 17" },
-    { label: "Thu Jun 18", value: "Jun 18" },
-    { label: "Fri Jun 19", value: "Jun 19" }
-  ];
-
-  const handleSubmit = (e: React.FormEvent) => {
+  /**
+   * Saves the lead to Supabase, then sends the visitor to the Google booking page.
+   * IMPORTANT: if the save fails we still let them book — a database problem on our
+   * side must never stop a prospect from getting on the calendar.
+   */
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.phone || !formData.email) return;
 
     setIsSubmitting(true);
-    // Simulate API submission and business knowledge scraping
+    setSaveFailed(false);
+
+    // Capture UTM tags if the visitor arrived from an ad campaign.
+    const params = new URLSearchParams(window.location.search);
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/site_demo_requests`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({
+          full_name: formData.name.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim(),
+          company_name: formData.businessName.trim() || null,
+          concern: CONCERN_LABELS[formData.painPoint] || formData.painPoint,
+          source: "website",
+          utm_source: params.get("utm_source"),
+          utm_campaign: params.get("utm_campaign"),
+          user_agent: navigator.userAgent,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`Supabase responded ${res.status}`);
+    } catch (err) {
+      // Log for debugging, but never block the booking path.
+      console.error("Lead save failed:", err);
+      setSaveFailed(true);
+    }
+
+    setIsSubmitting(false);
+    setIsSubmitted(true);
+
+    // Give them a moment to read the confirmation, then hand off to Google Calendar.
+    // Same-tab redirect (not window.open) so popup blockers can't swallow it.
     setTimeout(() => {
-      setIsSubmitting(false);
-      setIsSubmitted(true);
-    }, 1800);
+      window.location.href = BOOKING_URL;
+    }, 2500);
   };
 
   const currentYear = new Date().getFullYear();
 
   return (
-    <section 
+    <section
       className="relative py-20 sm:py-24 px-4 sm:px-8 lg:px-16 bg-[#080808]"
       id="contacts"
     >
       <div className="absolute top-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
 
       <div className="max-w-7xl mx-auto space-y-16" id="contacts-container">
-        
+
         {/* Header Block */}
         <div className="text-center max-w-3xl mx-auto space-y-4" id="contacts-header">
           <div className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 px-3 py-1 rounded-full text-primary" id="contact-badge">
@@ -60,16 +114,16 @@ export default function ContactSection() {
           </h2>
 
           <p className="text-xs lg:text-sm text-muted-foreground/80 font-light max-w-2xl mx-auto leading-relaxed">
-            Fill out your business parameters and select an open consultation slot. Our engineers will scrape your website, prepare a customized voice model, and call you at your selected hour to demonstrate an instant booking live.
+            Tell us about your business, then pick a time that works for you. We&rsquo;ll review your setup before the call and walk you through exactly how your AI receptionist would handle your front desk.
           </p>
         </div>
 
-        {/* ELEGANT DIRECT CAL.COM BOOKING BANNER */}
+        {/* BOOKING BANNER */}
         <div className="max-w-5xl mx-auto" id="direct-cal-booking-banner">
           <div className="relative rounded-2xl overflow-hidden border border-primary/30 bg-primary/[0.02] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_30px_rgba(10,224,0,0.03)] group hover:border-primary/50 transition-colors">
             {/* Ambient subtle green glow */}
             <div className="absolute -top-10 -right-10 w-48 h-48 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
-            
+
             <div className="flex items-center gap-4 text-left">
               <div className="p-3.5 bg-primary/10 border border-primary/25 rounded-xl text-primary shrink-0 group-hover:scale-105 transition-transform duration-300">
                 <Calendar size={22} className="animate-pulse" />
@@ -82,16 +136,16 @@ export default function ContactSection() {
                   </span>
                 </div>
                 <h3 className="text-lg sm:text-xl font-bold uppercase text-foreground tracking-tight">
-                  Schedule Directly via Cal.com
+                  Book a Free Call
                 </h3>
                 <p className="text-[11px] sm:text-xs text-muted-foreground/80 font-light max-w-lg leading-relaxed">
-                  Skip the manual setup form. Book an immediate 30-minute consultation with Nicole Bejarano to configure, voice-train, and deploy your customized receptionist.
+                  Skip the form. Book a 20-minute consultation with Nicole Bejarano to configure, voice-train, and deploy your customized receptionist.
                 </p>
               </div>
             </div>
 
-            <a 
-              href="https://cal.com/nicole-bejarano-u04dax/30min"
+            <a
+              href={BOOKING_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full md:w-auto px-6 py-3.5 rounded-xl bg-primary text-black font-mono font-black text-xs uppercase tracking-wider hover:bg-opacity-90 transition-all flex items-center justify-center gap-2 shrink-0 shadow-lg group-hover:shadow-primary/10 active:scale-[0.98]"
@@ -104,11 +158,11 @@ export default function ContactSection() {
 
         {/* Main Grid: Form Left, Explanatory info Right */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch max-w-5xl mx-auto" id="contact-inner-grid">
-          
-          {/* Form Pane (8 cols or 7 cols) */}
+
+          {/* Form Pane */}
           <div className="lg:col-span-7" id="contact-form-side">
             {!isSubmitted ? (
-              <form 
+              <form
                 onSubmit={handleSubmit}
                 className="glass-panel p-4 sm:p-6 lg:p-8 rounded-2xl relative space-y-6 text-left border border-white/5 flex flex-col justify-between h-full"
                 id="contact-agent-form"
@@ -118,10 +172,10 @@ export default function ContactSection() {
                     <div className="h-12 w-12 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                     <div className="text-center space-y-1">
                       <p className="text-sm font-semibold text-foreground tracking-wider uppercase font-mono">
-                        SCANNING BUSINESS SCHEMA...
+                        SAVING YOUR DETAILS...
                       </p>
                       <p className="text-[11px] text-muted-foreground font-light max-w-xs px-4 leading-normal">
-                        Analyzing brand domain guidelines, parsing calendar endpoints, and compiling custom greeting prompts...
+                        One moment &mdash; we&rsquo;ll take you straight to the calendar to pick your time.
                       </p>
                     </div>
                   </div>
@@ -141,8 +195,8 @@ export default function ContactSection() {
                       </label>
                       <div className="relative">
                         <User size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           required
                           value={formData.name}
                           onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -158,8 +212,8 @@ export default function ContactSection() {
                       </label>
                       <div className="relative">
                         <Mail size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
-                        <input 
-                          type="email" 
+                        <input
+                          type="email"
                           required
                           value={formData.email}
                           onChange={(e) => setFormData({...formData, email: e.target.value})}
@@ -177,8 +231,8 @@ export default function ContactSection() {
                       </label>
                       <div className="relative">
                         <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
-                        <input 
-                          type="tel" 
+                        <input
+                          type="tel"
                           required
                           value={formData.phone}
                           onChange={(e) => setFormData({...formData, phone: e.target.value})}
@@ -194,8 +248,8 @@ export default function ContactSection() {
                       </label>
                       <div className="relative">
                         <Building size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={formData.businessName}
                           onChange={(e) => setFormData({...formData, businessName: e.target.value})}
                           placeholder="Pendelton Logistics"
@@ -217,11 +271,11 @@ export default function ContactSection() {
                         { label: "Staff overloaded with calls", value: "overload" },
                         { label: "Seeking live dashboard metrics", value: "metrics" }
                       ].map((item) => (
-                        <div 
+                        <div
                           key={item.value}
                           onClick={() => setFormData({...formData, painPoint: item.value})}
                           className={`p-2.5 rounded-lg border text-[11px] font-light flex items-center justify-between cursor-pointer transition-all ${
-                            formData.painPoint === item.value 
+                            formData.painPoint === item.value
                               ? "bg-primary/10 border-primary text-primary font-medium"
                               : "bg-[#141414] border-white/5 text-muted-foreground hover:bg-[#1a1a1a]"
                           }`}
@@ -233,45 +287,17 @@ export default function ContactSection() {
                     </div>
                   </div>
 
-                  {/* Glass Interactive Calendar and hours */}
-                  <div className="space-y-3 pt-3 border-t border-white/5">
+                  {/* Step 2 explainer — real scheduling happens on the Google calendar */}
+                  <div className="space-y-2 pt-3 border-t border-white/5">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
                       <Clock size={14} className="text-primary" />
-                      2. Select Demo Time slot
+                      2. Pick your time
                     </h3>
-
-                    {/* Days select row */}
-                    <div className="flex gap-1.5 overflow-x-auto pb-1" id="days-selection-row">
-                      {days.map((day) => (
-                        <div
-                          key={day.value}
-                          onClick={() => setSelectedDay(day.value)}
-                          className={`px-3 py-2 rounded-lg border text-[10px] uppercase font-mono font-bold tracking-wider cursor-pointer transition-all whitespace-nowrap ${
-                            selectedDay === day.value
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-black/30 border-white/5 text-muted-foreground hover:bg-white/5"
-                          }`}
-                        >
-                          {day.label}
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Times slots row */}
-                    <div className="flex flex-wrap gap-1.5 pt-1" id="time-slots-row">
-                      {timeSlots.map((slot) => (
-                        <div
-                          key={slot}
-                          onClick={() => setSelectedTime(slot)}
-                          className={`px-3 py-1.5 rounded-lg border text-[10px] font-mono cursor-pointer transition-all ${
-                            selectedTime === slot
-                              ? "bg-primary/20 border-primary text-primary font-semibold shadow-[0_0_10px_rgba(10,224,0,0.1)]"
-                              : "bg-[#141414] border-white/5 text-muted-foreground hover:bg-white/5"
-                          }`}
-                        >
-                          {slot}
-                        </div>
-                      ))}
+                    <div className="flex items-start gap-3 p-3.5 rounded-lg bg-primary/[0.04] border border-primary/15">
+                      <Calendar size={14} className="text-primary shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-muted-foreground/90 font-light leading-relaxed">
+                        After you submit, we&rsquo;ll take you straight to our live calendar to choose a <span className="text-primary font-medium">20-minute</span> slot that suits you. You&rsquo;ll get an instant confirmation with the meeting link.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -279,93 +305,115 @@ export default function ContactSection() {
                 <div className="pt-4">
                   <button
                     type="submit"
-                    className="w-full bg-primary text-primary-foreground font-black py-4 rounded-xl text-xs uppercase tracking-widest hover:shadow-[0_0_20px_rgba(10,224,0,0.45)] transition-all cursor-pointer flex items-center justify-center gap-2"
+                    disabled={isSubmitting}
+                    className="w-full bg-primary text-primary-foreground font-black py-4 rounded-xl text-xs uppercase tracking-widest hover:shadow-[0_0_20px_rgba(10,224,0,0.45)] transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
                   >
                     <Send size={12} fill="currentColor" />
-                    Lock Demo Call ({selectedDay} @ {selectedTime})
+                    Continue to Calendar
                   </button>
+                  <p className="text-[10px] text-muted-foreground/50 text-center mt-2.5 font-light">
+                    No spam. We only use your details to prepare and confirm your demo call.
+                  </p>
                 </div>
               </form>
             ) : (
-              /* High loyalty green success receipt page */
-              <div 
+              /* Success state — accurate about what actually happens next */
+              <div
                 className="glass-panel p-8 rounded-2xl border border-primary/20 bg-gradient-to-b from-primary/[0.03] to-transparent text-center space-y-6 flex flex-col items-center justify-center h-full min-h-[450px] animate-fade-in"
                 id="booking-success-receipt"
               >
-                <div className="p-4 bg-primary/20 border border-primary/30 rounded-full text-primary scale-110 animate-bounce">
+                <div className="p-4 bg-primary/20 border border-primary/30 rounded-full text-primary scale-110">
                   <CheckCircle2 size={36} />
                 </div>
 
                 <div className="space-y-2">
                   <span className="text-[10px] font-mono font-bold text-primary tracking-[0.25em] uppercase bg-primary/10 px-3 py-1 rounded-full">
-                    DEMO SLAM DUNK &bull; LOCK SECURED
+                    DETAILS RECEIVED
                   </span>
-                  
-                  <h3 className="text-xl lg:text-2xl font-black text-foreground uppercase tracking-tight">
-                    Your Agent is in Training!
+
+                  <h3 className="text-xl lg:text-2xl font-black text-foreground uppercase tracking-tight pt-2">
+                    One last step, {formData.name.split(" ")[0]}
                   </h3>
-                  
+
                   <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed font-light">
-                    Hi **{formData.name}**! Our systems have registered your number **{formData.phone}**. We have initiated scraping procedures on any relevant digital endpoints for **{formData.businessName || "your business"}**.
+                    We&rsquo;re taking you to our calendar now so you can pick a time. If it doesn&rsquo;t open automatically, use the button below.
                   </p>
                 </div>
 
-                {/* Receipt Grid showing exact slot */}
+                {/* Summary of what they sent us */}
                 <div className="bg-[#0f0f0f]/80 border border-white/5 rounded-xl p-4 w-full max-w-sm space-y-2.5 font-mono text-left text-[11px] text-muted-foreground">
                   <div className="flex justify-between items-center pb-2 border-b border-white/5">
-                    <span className="text-foreground uppercase font-bold text-[10px]">SCHEDULE RECEIPT</span>
-                    <span className="text-primary font-black">#NSK-{Math.floor(Math.random() * 9000) + 1000}</span>
+                    <span className="text-foreground uppercase font-bold text-[10px]">YOUR DETAILS</span>
+                    <span className="text-primary font-black">20 MIN CALL</span>
                   </div>
-                  
-                  <div className="flex justify-between">
+
+                  <div className="flex justify-between gap-3">
                     <span>Contact:</span>
-                    <span className="text-foreground font-sans font-light">{formData.name}</span>
+                    <span className="text-foreground font-sans font-light text-right">{formData.name}</span>
                   </div>
 
-                  <div className="flex justify-between">
+                  <div className="flex justify-between gap-3">
+                    <span>Email:</span>
+                    <span className="text-foreground font-sans font-light text-right break-all">{formData.email}</span>
+                  </div>
+
+                  <div className="flex justify-between gap-3">
                     <span>Phone:</span>
-                    <span className="text-foreground font-sans font-light">{formData.phone}</span>
+                    <span className="text-foreground font-sans font-light text-right">{formData.phone}</span>
                   </div>
 
-                  <div className="flex justify-between">
-                    <span>Selected Date:</span>
-                    <span className="text-foreground font-sans font-semibold">{selectedDay}, {currentYear}</span>
-                  </div>
+                  {formData.businessName && (
+                    <div className="flex justify-between gap-3">
+                      <span>Company:</span>
+                      <span className="text-foreground font-sans font-light text-right">{formData.businessName}</span>
+                    </div>
+                  )}
 
-                  <div className="flex justify-between">
-                    <span>Selected Hour:</span>
-                    <span className="text-primary font-bold">{selectedTime} EST</span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span>Status:</span>
-                    <span className="text-emerald-400 bg-emerald-950/40 border border-emerald-500/10 px-1.5 rounded text-[9px] uppercase font-bold">Scraping Ingest</span>
+                  <div className="flex justify-between gap-3">
+                    <span>Focus:</span>
+                    <span className="text-primary font-sans font-medium text-right">{CONCERN_LABELS[formData.painPoint]}</span>
                   </div>
                 </div>
 
-                <p className="text-[10px] text-muted-foreground/60 max-w-xs leading-normal italic font-light">
-                  A verification link is on its way to {formData.email}. Our technician will call you live at your scheduled time. Be ready to converse with your reception agent!
-                </p>
+                {/* Manual fallback in case the auto-redirect is blocked */}
+                <a
+                  href={BOOKING_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full max-w-sm bg-primary text-primary-foreground font-black py-4 rounded-xl text-xs uppercase tracking-widest hover:shadow-[0_0_20px_rgba(10,224,0,0.45)] transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                >
+                  <span>Choose Your Time Slot</span>
+                  <ArrowRight size={13} />
+                </a>
+
+                {saveFailed && (
+                  <div className="flex items-start gap-2 text-left max-w-sm">
+                    <AlertCircle size={13} className="text-amber-400 shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-amber-400/80 leading-normal font-light">
+                      We had trouble saving your details, but you can still book &mdash; just use the button above and we&rsquo;ll collect everything on the call.
+                    </p>
+                  </div>
+                )}
 
                 <button
-                  onClick={() => setIsSubmitted(false)}
-                  className="text-xs font-bold text-primary hover:text-white uppercase tracking-wider font-mono transition-transform active:scale-95 cursor-pointer mt-1"
+                  onClick={() => { setIsSubmitted(false); setSaveFailed(false); }}
+                  className="text-xs font-bold text-primary hover:text-white uppercase tracking-wider font-mono transition-transform active:scale-95 cursor-pointer"
                 >
-                  &larr; Reschedule Appointment Slot
+                  &larr; Edit my details
                 </button>
               </div>
             )}
           </div>
 
-          {/* Side stats / support cards (5 cols) */}
+          {/* Side stats / support cards */}
           <div className="lg:col-span-5 flex flex-col justify-between space-y-6 text-left" id="contact-details-side">
-            
+
             <div className="glass-panel p-5 sm:p-6 rounded-2xl border border-white/5 space-y-4">
               <h4 className="text-xs font-bold uppercase tracking-wider text-primary font-mono flex items-center gap-1.5">
                 <Sparkles size={13} className="animate-spin" />
                 HOW WE CUSTOM-PREPARE
               </h4>
-              
+
               <div className="space-y-4 text-xs font-light text-muted-foreground leading-relaxed font-sans">
                 <div>
                   <h5 className="font-bold text-foreground mb-1">1. Business Knowledge Mapping</h5>
@@ -377,7 +425,7 @@ export default function ContactSection() {
                 <div>
                   <h5 className="font-bold text-foreground mb-1">2. Bespoke Voice Training</h5>
                   <p className="text-[11px]">
-                    We map this structured knowledge directly code-level as memory buffers, fine-tuning your agent's sound model to be incredibly natural and on-brand.
+                    We map this structured knowledge directly code-level as memory buffers, fine-tuning your agent&rsquo;s sound model to be incredibly natural and on-brand.
                   </p>
                 </div>
 
@@ -403,16 +451,16 @@ export default function ContactSection() {
               </p>
             </div>
 
-            {/* Columbus Location info */}
+            {/* Location info */}
             <div className="text-[10px] text-muted-foreground/55 font-mono space-y-1.5 py-1">
               <p>NO SHOW KILLER AI &bull; COLUMBUS OFFICE</p>
-              <p>SUPPORT: AGENTS@NOSHOWKILLER.AI &bull; +1 (614) NSK-TRUE</p>
+              <p>SUPPORT: ONBOARDING@NOSHOWKILLERAI.COM</p>
               <p className="flex items-center gap-1.5 pt-1">
                 <Facebook size={12} className="text-primary" />
-                <a 
-                  href="https://www.facebook.com/profile.php?id=61585860255283" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
+                <a
+                  href="https://www.facebook.com/profile.php?id=61585860255283"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="hover:text-primary transition-colors hover:underline uppercase font-bold tracking-wider"
                 >
                   Connect on Facebook
@@ -432,10 +480,10 @@ export default function ContactSection() {
             <span>&bull;</span>
             <span className="hover:text-primary cursor-default">Privacy Handshake</span>
             <span>&bull;</span>
-            <a 
-              href="https://www.facebook.com/profile.php?id=61585860255283" 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href="https://www.facebook.com/profile.php?id=61585860255283"
+              target="_blank"
+              rel="noopener noreferrer"
               className="hover:text-primary transition-colors flex items-center gap-1.5 text-[10px] text-muted-foreground/60 hover:text-primary uppercase"
             >
               <Facebook size={11} className="text-primary" />

@@ -297,7 +297,7 @@ export default function AboutSection() {
                 <span>Natively synchronized with Dentrix &bull; Mindbody &bull; ServiceTitan &bull; Clio Manage &bull; Acuity</span>
               </div>
               <a 
-                href="https://cal.com/nicole-bejarano-u04dax/30min" 
+                href="https://calendar.app.google/FEyhB3T1gC1Nnk5h6" 
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:text-white transition-colors font-mono text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 group"
