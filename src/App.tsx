@@ -14,7 +14,7 @@ import Footer from "./components/Footer";
 
 export default function App() {
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-ink text-bone" id="nsk-app-wrapper">
+    <div className="relative min-h-screen overflow-x-hidden bg-ink text-white" id="nsk-app-wrapper">
       <Navbar />
       <main>
         <HeroSection />
